@@ -1,3 +1,10 @@
+const client = contentful.createClient({
+  // This is the space ID. A space is like a project folder in Contentful terms
+  space: 'ehd8yrwtwbz0',
+  // This is the access token for this space. Normally you get both ID and the token in the Contentful web app
+  accessToken: 'x1gpyx7kKDO_EjffWFWvYHIVrtOJ86z1p1jny6yi_Mo',
+});
+
 //variables
 const cartBtn = document.querySelector('.cart-btn');
 const closeCartBtn = document.querySelector('.close-cart');
@@ -17,9 +24,14 @@ let buttonsDOM = [];
 class Products {
   async getProducts() {
     try {
-      let result = await fetch('products.json');
-      let data = await result.json();
-      let products = data.items;
+      const response = await client.getEntries({
+        content_type: 'comfyHouseProject',
+      });
+      console.log(response);
+
+      // let result = await fetch('products.json');
+      // let data = await result.json();
+      let products = response.items;
       products = products.map((item) => {
         const { title, price } = item.fields;
         const { id } = item.sys;
@@ -154,25 +166,62 @@ class UI {
         let id = removeItem.dataset.id;
         cartContent.removeChild(removeItem.parentElement.parentElement);
         this.removeItem(id);
+      } else if (event.target.classList.contains('fa-chevron-up')) {
+        let addAmount = event.target;
+        let id = addAmount.dataset.id;
+        let tempItem = cart.find((item) => item.id === id);
+        tempItem.amount = tempItem.amount + 1;
+        Storage.saveCart(cart);
+        this.setCartValues(cart);
+        addAmount.nextElementSibling.innerText = tempItem.amount;
+      } else if (event.target.classList.contains('fa-chevron-down')) {
+        let lowerAmount = event.target;
+        let id = lowerAmount.dataset.id;
+        let tempItem = cart.find((item) => item.id === id);
+        tempItem.amount = tempItem.amount - 1;
+        if (tempItem.amount > 0) {
+          Storage.saveCart(cart);
+          this.setCartValues(cart);
+          lowerAmount.previousElementSibling.innerText = tempItem.amount;
+        } else {
+          cartContent.removeChild(lowerAmount.parentElement.parentElement);
+          this.removeItem(id);
+        }
       }
     });
   }
   clearCart() {
-    let cartItems = cart.map((item) => item.id);
-    cartItems.forEach((id) => this.removeItem(id));
+    let cartItem = cart.map((item) => item.id);
+    cartItem.forEach((id) => this.removeItem(id));
     console.log(cartContent.children);
     while (cartContent.children.length > 0) {
       cartContent.removeChild(cartContent.children[0]);
     }
     this.hideCart();
+    // let cartItems = cart.map((item) => item.id);
+    // cartItems.forEach((id) => this.removeItem(id));
+    // console.log(cartContent.children);
+    // while (cartContent.children.length > 0) {
+    //   cartContent.removeChild(cartContent.children[0]);
+    // }
+    // this.hideCart();
   }
   removeItem(id) {
-    cart.filter((item) => item.id !== id);
+    cart = cart.filter((item) => item.id !== id);
     this.setCartValues(cart);
     Storage.saveCart(cart);
     let button = this.getSingleButton(id);
-    button.disabled = 'false';
+    button.disabled = false;
     button.innerHTML = `<i class="fas fa-shopping-cart"></i>add to cart`;
+    //   cart.filter((item) => item.id !== id);
+    //   this.setCartValues(cart);
+    //   Storage.saveCart(cart);
+    //   let button = this.getSingleButton(id);
+    //   button.disabled = 'false';
+    //   button.innerHTML = `<i class="fas fa-shopping-cart"></i>add to cart`;
+    // }
+    // getSingleButton(id) {
+    //   return buttonsDOM.find((button) => button.dataset.id === id);
   }
   getSingleButton(id) {
     return buttonsDOM.find((button) => button.dataset.id === id);
